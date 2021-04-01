@@ -105,7 +105,11 @@ def create_app(test_config=None):
                 return 'This user does not exists'
 
             else:
-                exercise = Exercise(description=new_desc, duration=new_dur, exercise_date=new_date)
+                exercise = Exercise(
+                  description=new_desc,
+                  duration=new_dur,
+                  exercise_date=new_date
+                )
                 exercise.user_uuid = user_uuid
                 exercise.insert()
 
@@ -147,7 +151,9 @@ def create_app(test_config=None):
             elif user_id:
                 user_data = User.query.filter(User.id == user_id).one_or_none()
                 user = user_data.format()
-                exercises_data = Exercise.query.filter(Exercise.user_uuid == user_id).all()
+                exercises_data = Exercise.query.filter(
+                  Exercise.user_uuid == user_id
+                ).all()
 
                 if from_date:
                     exercises_data = Exercise.query.filter(
@@ -176,7 +182,6 @@ def create_app(test_config=None):
                 exercises = [exercise.short() for exercise in exercises_data]
                 if limit:
                     exercises_data = exercises[0:limit]
-
 
                 if len(exercises_data):
                     return jsonify({
