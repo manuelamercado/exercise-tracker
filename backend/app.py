@@ -7,7 +7,7 @@ from flask import Flask, request, abort, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 
-from models import db, setup_db, User
+from models import db, setup_db, User, Exercise
 
 
 def create_app(test_config=None):
@@ -36,8 +36,8 @@ def create_app(test_config=None):
     '''
     POST /api/exercise/new-user
       it should create a new row in the users table
-    returns status code 200 and json {'success': True, 'users': user} where
-      users is an array containing only the newly created user
+    returns status a json {user: user} where
+      user is an object containing only the newly created user
       or appropriate status code indicating reason for failure
     '''
     @app.route('/api/exercise/new-user', methods=['POST'])
@@ -58,8 +58,133 @@ def create_app(test_config=None):
 
                 return jsonify({
                   'username': user.username,
-                  'id': user.id
+                  '_id': user.id
                 })
+
+        except Exception as e:
+            print(sys.exc_info(), e)
+            abort(422)
+
+    '''
+    GET /api/exercise/users
+    returns a json {'users': users} where users is the list of users
+    '''
+    @app.route('/api/exercise/users', methods=['GET'])
+    def retrieve_all_users():
+        users_data = User.query.order_by(User.id).all()
+        users = [user.format() for user in users_data]
+
+        if len(users_data):
+            return jsonify({
+              'users': users
+            })
+        else:
+            abort(404)
+
+        '''
+    POST /api/exercise/add
+      it should create a new row in the exercises table
+    returns a json { 'exercise': exercise} where
+      exercise is an object containing only the newly created exercise
+      or appropriate status code indicating reason for failure
+    '''
+    @app.route('/api/exercise/add', methods=['POST'])
+    def add_exercise():
+        user_uuid = request.form.get('userId', None)
+        new_desc = request.form.get('description', None)
+        new_dur = request.form.get('duration', None)
+        new_date = request.form.get('date', None)
+
+        try:
+            user = User.query.filter(
+              User.id == user_uuid
+            ).one_or_none().format()
+            is_username_valid = user.get('_id', None)
+
+            if not is_username_valid:
+                return 'This user does not exists'
+
+            else:
+                exercise = Exercise(description=new_desc, duration=new_dur, exercise_date=new_date)
+                exercise.user_uuid = user_uuid
+                exercise.insert()
+
+                return jsonify({
+                  'user_uuid': exercise.user_uuid,
+                  'id': exercise.id,
+                  'description': exercise.description,
+                  'duration': exercise.duration,
+                  'date': exercise.exercise_date
+                })
+
+        except Exception as e:
+            print(sys.exc_info(), e)
+            abort(422)
+
+    '''
+    GET /api/exercise/log
+    returns a json {'count': count} where count is the number of exercises
+
+    GET /api/exercise/log?user_id&from&to&limit
+    returns a json {'user': user, 'log': exercises} where user is the data of
+      the user, and log is the list of exercises registered by the user.
+      from, to, and limit are optional parameters
+    '''
+    @app.route('/api/exercise/log', methods=['GET'])
+    def retrieve_all_exercises():
+        user_id = request.args.get('user_id', None)
+        from_date = request.args.get('from', None)
+        to_date = request.args.get('to', None)
+        limit = request.args.get('limit', None, type=int)
+
+        try:
+            if not user_id:
+                exercises_counted = Exercise.query.count()
+
+                return jsonify({
+                  'count': exercises_counted
+                })
+            elif user_id:
+                user_data = User.query.filter(User.id == user_id).one_or_none()
+                user = user_data.format()
+                exercises_data = Exercise.query.filter(Exercise.user_uuid == user_id).all()
+
+                if from_date:
+                    exercises_data = Exercise.query.filter(
+                      Exercise.user_uuid == user_id,
+                      Exercise.exercise_date >= from_date
+                    ).all()
+                    if to_date:
+                        exercises_data = Exercise.query.filter(
+                          Exercise.exercise_date <= to_date,
+                          Exercise.exercise_date >= from_date,
+                          Exercise.exercise_date <= to_date
+                        ).all()
+
+                if to_date:
+                    exercises_data = Exercise.query.filter(
+                      Exercise.user_uuid == user_id,
+                      Exercise.exercise_date <= to_date
+                    ).all()
+                    if from_date:
+                        exercises_data = Exercise.query.filter(
+                          Exercise.exercise_date <= to_date,
+                          Exercise.exercise_date >= from_date,
+                          Exercise.exercise_date <= to_date
+                        ).all()
+
+                exercises = [exercise.short() for exercise in exercises_data]
+                if limit:
+                    exercises_data = exercises[0:limit]
+
+
+                if len(exercises_data):
+                    return jsonify({
+                      'user': user,
+                      'log': [exercises]
+                    })
+                else:
+                    abort(404)
 
         except Exception as e:
             print(sys.exc_info(), e)
