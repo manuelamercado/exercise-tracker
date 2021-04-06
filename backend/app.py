@@ -74,9 +74,7 @@ def create_app(test_config=None):
         users = [user.format() for user in users_data]
 
         if len(users_data) != 0:
-            return jsonify({
-              'users': users
-            })
+            return jsonify(users)
         else:
             {}
 
