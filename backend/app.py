@@ -61,7 +61,7 @@ def create_app(test_config=None):
                 })
 
         except Exception as e:
-            print(sys.exc_info(), e)
+            # print(sys.exc_info(), e)
             abort(422)
 
     @app.route('/api/exercise/users', methods=['GET'])
@@ -99,7 +99,7 @@ def create_app(test_config=None):
             is_username_valid = user.get('_id', None)
 
             if not is_username_valid:
-                return 'This user does not exists'
+                return 'This user does not exist'
 
             else:
                 exercise = Exercise(
@@ -119,7 +119,7 @@ def create_app(test_config=None):
                 })
 
         except Exception as e:
-            print(sys.exc_info(), e)
+            # print(sys.exc_info(), e)
             abort(422)
 
     @app.route('/api/exercise/log', methods=['GET'])
@@ -175,8 +175,8 @@ def create_app(test_config=None):
 
                 if len(exercises_data) != 0:
                     return jsonify({
-                      '_id': user.get("_id"),
-                      'username': user.get("username"),
+                      '_id': user.get('_id'),
+                      'username': user.get('username'),
                       'count': len(exercises_data),
                       'log': exercises
                     })
@@ -184,7 +184,7 @@ def create_app(test_config=None):
                     return {}
 
         except Exception as e:
-            print(sys.exc_info(), e)
+            # print(sys.exc_info(), e)
             abort(422)
 
     @app.errorhandler(422)
