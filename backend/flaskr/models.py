@@ -19,6 +19,7 @@ setup_db(app)
 
 def setup_db(app):
     app.config.from_object('config')
+    app.app_context().push()
     db.app = app
     db.init_app(app)
     db.create_all()
@@ -36,7 +37,8 @@ class User(db.Model):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String, nullable=False)
 
-    def __init__(self, username):
+    def __init__(self, id, username):
+        self.id = id
         self.username = username
 
     def format(self):
