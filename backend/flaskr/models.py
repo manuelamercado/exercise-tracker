@@ -1,12 +1,10 @@
-import os
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import (
-  Column, String, Integer, DateTime, ForeignKey, create_engine
+  Column, String, Integer, DateTime, ForeignKey
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from flask_sqlalchemy import SQLAlchemy
-import json
 import uuid
 
 db = SQLAlchemy()
@@ -17,12 +15,15 @@ setup_db(app)
 '''
 
 
-def setup_db(app):
-    app.config.from_object('config')
-    app.app_context().push()
-    db.app = app
-    db.init_app(app)
-    db.create_all()
+def setup_db(app, test_config=False):
+    if not test_config:
+        app.config.from_object('config')
+        app.app_context().push()
+        db.app = app
+        db.init_app(app)
+        db.create_all()
+    else:
+        return True
 
 
 '''
@@ -37,8 +38,7 @@ class User(db.Model):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String, nullable=False)
 
-    def __init__(self, id, username):
-        self.id = id
+    def __init__(self, username):
         self.username = username
 
     def format(self):
@@ -72,14 +72,19 @@ class Exercise(db.Model):
     id = Column(Integer, primary_key=True)
     description = Column(String, nullable=False)
     duration = Column(String, nullable=False)
-    exercise_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
+    exercise_date = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=True
+    )
     user_uuid = Column(UUID(as_uuid=True), ForeignKey('User.id'))
     user = relationship("User", back_populates="exercises")
 
-    def __init__(self, description, duration, exercise_date):
+    def __init__(self, description, duration, exercise_date, user_uuid):
         self.description = description
         self.duration = duration
         self.exercise_date = exercise_date
+        self.user_uuid = user_uuid
 
     def format(self):
         return {
@@ -87,9 +92,9 @@ class Exercise(db.Model):
           'description': self.description,
           'duration': self.duration,
           'date': self.exercise_date,
-          'user': self.user
+          'user_uuid': self.user_uuid
         }
-    
+
     def short(self):
         return {
             'description': self.description,
